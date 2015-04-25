@@ -1,7 +1,7 @@
 use std::ptr;
 
 struct TssContext { handle: u32 }
-struct TssTpm { handle: u32 }
+struct TssTpm<'context> { context: &'context TssContext, handle: u32 }
 
 type TssHContext = u32;
 type TssHTPM = u32;
@@ -15,6 +15,7 @@ extern {
     fn Tspi_Context_Create(phContext: *mut TssHContext) -> TssResult;
     fn Tspi_Context_Connect(phContext: TssHContext, wszDestination: *const TssUnicode) -> TssResult;
     fn Tspi_Context_GetTpmObject(phContext: TssHContext, phTPM: *mut TssHTPM) -> TssResult;
+    fn Tspi_Context_FreeMemory(phContext: TssHContext, rgbMemory: *mut u8) -> TssResult;
     fn Tspi_Context_Close(phContext: TssHContext) -> TssResult;
     fn Tspi_TPM_PcrRead(hTPM: TssHTPM, ulPcrIndex: u32, pulPcrValueLength: *mut u32, prgbPcrValue: *mut *mut u8) -> TssResult;
 }
@@ -51,7 +52,7 @@ impl TssContext {
             if result != TSS_SUCCESS {
                 Err(result)
             } else {
-                Ok(TssTpm { handle: handle })
+                Ok(TssTpm { context: self, handle: handle })
             }
         }
     }
@@ -65,7 +66,7 @@ impl Drop for TssContext {
     }
 }
 
-impl TssTpm {
+impl<'context> TssTpm<'context> {
     fn pcr_read(&self, pcr_index: u32) -> Result<Vec<u8>, TssResult> {
         unsafe {
             let mut ulPcrValueLength = -1;
@@ -78,8 +79,8 @@ impl TssTpm {
                 for i in 0..ulPcrValueLength {
                     vec.push(*pRgbPcrValue.offset(i as isize));
                 }
+                Tspi_Context_FreeMemory(self.context.handle, pRgbPcrValue);
                 Ok(vec)
-                // Need to free
             }
         }
     }
