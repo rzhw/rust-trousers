@@ -16,6 +16,7 @@ extern {
     fn Tspi_Context_Connect(phContext: TssHContext, wszDestination: *const TssUnicode) -> TssResult;
     fn Tspi_Context_GetTpmObject(phContext: TssHContext, phTPM: *mut TssHTPM) -> TssResult;
     fn Tspi_Context_Close(phContext: TssHContext) -> TssResult;
+    fn Tspi_TPM_PcrRead(hTPM: TssHTPM, ulPcrIndex: u32, pulPcrValueLength: *mut u32, prgbPcrValue: *mut *mut u8) -> TssResult;
 }
 
 impl TssContext {
@@ -64,13 +65,43 @@ impl Drop for TssContext {
     }
 }
 
+impl TssTpm {
+    fn pcr_read(&self, pcr_index: u32) -> Result<Vec<u8>, TssResult> {
+        unsafe {
+            let mut ulPcrValueLength = -1;
+            let mut pRgbPcrValue = 0 as *mut u8;
+            let result = Tspi_TPM_PcrRead(self.handle, pcr_index, &mut ulPcrValueLength, &mut pRgbPcrValue);
+            if result != TSS_SUCCESS {
+                Err(result)
+            } else {
+                let mut vec = Vec::new();
+                for i in 0..ulPcrValueLength {
+                    vec.push(*pRgbPcrValue.offset(i as isize));
+                }
+                Ok(vec)
+                // Need to free
+            }
+        }
+    }
+}
+
 fn main() {
     // TODO: Any cleaner way to write this?
     let contextresult = TssContext::new();
     if let Ok(context) = contextresult {
         if let Ok(_) = context.connect() {
             if let Ok(tpm) = context.get_tpm_object() {
-                println!("Success! TPM handle: {:?}", tpm.handle);
+                println!("I'M IN UR TPM READING UR PCRZ (From Rust!)");
+                println!("TPM handle: {:?}", tpm.handle);
+                for i in 0..24 {
+                    if let Ok(vec) = tpm.pcr_read(i) {
+                        print!("PCR {:02}", i);
+                        for j in 0..19 {
+                            print!(" {:02X}", vec[j]);
+                        }
+                        print!("\n");
+                    }
+                }
             } else {
                 println!("Failed to get TPM handle :(")
             }
