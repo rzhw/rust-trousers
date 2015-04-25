@@ -22,38 +22,38 @@ extern {
 
 impl TssContext {
     fn new() -> Result<TssContext, TssResult> {
-        unsafe {
-            let mut handle = 0;
-            let result = Tspi_Context_Create(&mut handle);
-            if result != TSS_SUCCESS {
-                Err(result)
-            } else {
-                Ok(TssContext { handle: handle })
-            }
+        let mut handle = 0;
+        let result = unsafe {
+            Tspi_Context_Create(&mut handle)
+        };
+        if result != TSS_SUCCESS {
+            Err(result)
+        } else {
+            Ok(TssContext { handle: handle })
         }
     }
 
     // TODO: support destination
     fn connect(&self) -> Result<(), TssResult> {
-        unsafe {
-            let result = Tspi_Context_Connect(self.handle, ptr::null());
-            if result != TSS_SUCCESS {
-                Err(result)
-            } else {
-                Ok(())
-            }
+        let result = unsafe {
+            Tspi_Context_Connect(self.handle, ptr::null())
+        };
+        if result != TSS_SUCCESS {
+            Err(result)
+        } else {
+            Ok(())
         }
     }
 
     fn get_tpm_object(&self) -> Result<TssTpm, TssResult> {
-        unsafe {
-            let mut handle = 0;
-            let result = Tspi_Context_GetTpmObject(self.handle, &mut handle);
-            if result != TSS_SUCCESS {
-                Err(result)
-            } else {
-                Ok(TssTpm { context: self, handle: handle })
-            }
+        let mut handle = 0;
+        let result = unsafe {
+            Tspi_Context_GetTpmObject(self.handle, &mut handle)
+        };
+        if result != TSS_SUCCESS {
+            Err(result)
+        } else {
+            Ok(TssTpm { context: self, handle: handle })
         }
     }
 }
@@ -69,20 +69,22 @@ impl Drop for TssContext {
 
 impl<'context> TssTpm<'context> {
     fn pcr_read(&self, pcr_index: u32) -> Result<Vec<u8>, TssResult> {
-        unsafe {
-            let mut ulPcrValueLength = -1;
-            let mut pRgbPcrValue = 0 as *mut u8;
-            let result = Tspi_TPM_PcrRead(self.handle, pcr_index, &mut ulPcrValueLength, &mut pRgbPcrValue);
-            if result != TSS_SUCCESS {
-                Err(result)
-            } else {
-                let mut vec = Vec::new();
+        let mut ulPcrValueLength = -1;
+        let mut pRgbPcrValue = 0 as *mut u8;
+        let result = unsafe {
+            Tspi_TPM_PcrRead(self.handle, pcr_index, &mut ulPcrValueLength, &mut pRgbPcrValue)
+        };
+        if result != TSS_SUCCESS {
+            Err(result)
+        } else {
+            let mut vec = Vec::new();
+            unsafe {
                 for i in 0..ulPcrValueLength {
                     vec.push(*pRgbPcrValue.offset(i as isize));
                 }
                 Tspi_Context_FreeMemory(self.context.handle, pRgbPcrValue);
-                Ok(vec)
             }
+            Ok(vec)
         }
     }
 }
