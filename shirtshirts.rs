@@ -61,6 +61,7 @@ impl TssContext {
 impl Drop for TssContext {
     fn drop(&mut self) {
         unsafe {
+            Tspi_Context_FreeMemory(self.handle, 0 as *mut u8);
             Tspi_Context_Close(self.handle);
         }
     }
@@ -98,7 +99,7 @@ fn main() {
                     if let Ok(vec) = tpm.pcr_read(i) {
                         print!("PCR {:02}", i);
                         for j in 0..19 {
-                            print!(" {:02X}", vec[j]);
+                            print!(" {:02x}", vec[j]);
                         }
                         print!("\n");
                     }
