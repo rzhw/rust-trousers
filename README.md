@@ -15,7 +15,7 @@ pointers-to-pointers, and other memory management and boilerplate code.
 
 At the moment this library is *very* incomplete. The TSS spec is exhaustive
 (742 pages), so there is a lot to go through. The below table indicates what
-functionality is available.
+functionality is available. Pull requests are greatly appreciated!
 
 Module | Implemented | Partial | Missing
 -------|-------------|---------|--------
@@ -31,10 +31,10 @@ Module | Implemented | Partial | Missing
 4.3.4.10 | N/A | N/A | All
 4.3.4.11 | N/A | N/A | All
 4.3.4.12 | N/A | N/A | All
-4.3.4.13 | Tspi_TPM_PcrRead | Tspi_TPM_PcrExtend | Tspi_TPM_GetEvent, Tspi_TPM_GetEvents, Tspi_TPM_GetEventLog, Tspi_TPM_Quote
+4.3.4.13 Old PCR commands [(trivia)][1] | Tspi_TPM_PcrRead | Tspi_TPM_PcrExtend | Tspi_TPM_GetEvent, Tspi_TPM_GetEvents, Tspi_TPM_GetEventLog, Tspi_TPM_Quote
 4.3.4.14 | N/A | N/A | All
 4.3.4.15 | N/A | N/A | All
-4.3.4.16 | N/A | N/A | All
+4.3.4.16 New PCR commands | N/A | N/A | Tspi_TPM_PcrReset, Tspi_Data_Seal, Tspi_Data_SealX, Tspi_TPM_Quote2, Tspi_PcrComposite_SetPcrLocality, Tspi_PcrComposite_GetPcrLocality, Tspi_PcrComposite_GetCompositeHash, Tspi_PcrComposite_SelectPcrIndexEx
 4.3.4.17 | N/A | N/A | All
 4.3.4.18 | N/A | N/A | All
 4.3.4.19 | N/A | N/A | All
@@ -54,3 +54,5 @@ Module | Implemented | Partial | Missing
 4.3.4.33 | N/A | N/A | All
 4.3.4.34 | N/A | N/A | All
 *Others* | N/A | N/A | All
+
+[1]: http://sourceforge.net/p/trousers/mailman/message/18846127/
