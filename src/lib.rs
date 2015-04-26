@@ -7,8 +7,13 @@ pub type TssUnicode = u16;
 
 pub const TSS_SUCCESS: TssResult = 0;
 
-pub struct TssContext { handle: u32 }
-pub struct TssTpm<'context> { context: &'context TssContext, handle: u32 }
+pub struct TssContext {
+    pub handle: u32
+}
+pub struct TssTpm<'context> {
+    pub context: &'context TssContext,
+    pub handle: u32
+}
 
 #[link(name = "tspi")]
 extern {
