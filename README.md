@@ -31,7 +31,7 @@ Module | Implemented | Partial | Missing
 4.3.4.10 | N/A | N/A | All
 4.3.4.11 | N/A | N/A | All
 4.3.4.12 | N/A | N/A | All
-4.3.4.13 | Tspi_TPM_PcrRead | N/A | Tspi_TPM_GetEvent, Tspi_TPM_GetEvents, Tspi_TPM_GetEventLog, Tspi_TPM_Quote, Tspi_TPM_PcrExtend, Tspi_TPM_PcrRead
+4.3.4.13 | Tspi_TPM_PcrRead | Tspi_TPM_PcrExtend | Tspi_TPM_GetEvent, Tspi_TPM_GetEvents, Tspi_TPM_GetEventLog, Tspi_TPM_Quote
 4.3.4.14 | N/A | N/A | All
 4.3.4.15 | N/A | N/A | All
 4.3.4.16 | N/A | N/A | All

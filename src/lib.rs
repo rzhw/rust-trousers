@@ -23,6 +23,7 @@ extern {
     fn Tspi_Context_FreeMemory(phContext: TssHContext, rgbMemory: *mut u8) -> TssResult;
     fn Tspi_Context_Close(phContext: TssHContext) -> TssResult;
     fn Tspi_TPM_PcrRead(hTPM: TssHTPM, ulPcrIndex: u32, pulPcrValueLength: *mut u32, prgbPcrValue: *mut *mut u8) -> TssResult;
+    fn Tspi_TPM_PcrExtend(hTPM: TssHTPM, ulPcrIndex: u32, ulPcrDataLength: u32, pbPcrData: *const u8, pPcrEvent: *mut u8, pulPcrValueLength: *mut u32, prgbPcrValue: *mut *mut u8) -> TssResult;
 }
 
 impl TssContext {
@@ -71,20 +72,44 @@ impl Drop for TssContext {
 
 impl<'context> TssTPM<'context> {
     pub fn pcr_read(&self, pcr_index: u32) -> Result<Vec<u8>, TssResult> {
-        let mut ulPcrValueLength = -1;
-        let mut pRgbPcrValue = 0 as *mut u8;
+        let mut pcr_value_length = 0;
+        let mut pcr_value_ptr = 0 as *mut u8;
         let result = unsafe {
-            Tspi_TPM_PcrRead(self.handle, pcr_index, &mut ulPcrValueLength, &mut pRgbPcrValue)
+            Tspi_TPM_PcrRead(self.handle, pcr_index, &mut pcr_value_length, &mut pcr_value_ptr)
         };
         if result != TSS_SUCCESS {
             return Err(result);
         }
         let mut vec = Vec::new();
         unsafe {
-            for i in 0..ulPcrValueLength {
-                vec.push(*pRgbPcrValue.offset(i as isize));
+            for i in 0..pcr_value_length {
+                // TODO: Is this isize cast safe?
+                vec.push(*pcr_value_ptr.offset(i as isize));
             }
-            Tspi_Context_FreeMemory(self.context.handle, pRgbPcrValue);
+            Tspi_Context_FreeMemory(self.context.handle, pcr_value_ptr);
+        }
+        Ok(vec)
+    }
+
+    // TODO: events
+    pub fn pcr_extend(&self, pcr_index: u32, data: &[u8]) -> Result<Vec<u8>, TssResult> {
+        let mut pcr_value_length = 0;
+        let mut pcr_value_ptr = 0 as *mut u8;
+        let result = unsafe {
+            // TODO: Is this u32 cast safe?
+            Tspi_TPM_PcrExtend(self.handle, pcr_index, data.len() as u32, data.as_ptr(), 0 as *mut u8, &mut pcr_value_length, &mut pcr_value_ptr)
+        };
+        if result != TSS_SUCCESS {
+            return Err(result);
+        }
+        // TODO: DRY with above
+        let mut vec = Vec::new();
+        unsafe {
+            for i in 0..pcr_value_length {
+                // TODO: Is this isize cast safe?
+                vec.push(*pcr_value_ptr.offset(i as isize));
+            }
+            Tspi_Context_FreeMemory(self.context.handle, pcr_value_ptr);
         }
         Ok(vec)
     }
