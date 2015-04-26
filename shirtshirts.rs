@@ -27,10 +27,9 @@ impl TssContext {
             Tspi_Context_Create(&mut handle)
         };
         if result != TSS_SUCCESS {
-            Err(result)
-        } else {
-            Ok(TssContext { handle: handle })
+            return Err(result);
         }
+        Ok(TssContext { handle: handle })
     }
 
     // TODO: support destination
@@ -39,10 +38,9 @@ impl TssContext {
             Tspi_Context_Connect(self.handle, ptr::null())
         };
         if result != TSS_SUCCESS {
-            Err(result)
-        } else {
-            Ok(())
+            return Err(result);
         }
+        Ok(())
     }
 
     fn get_tpm_object(&self) -> Result<TssTpm, TssResult> {
@@ -51,10 +49,9 @@ impl TssContext {
             Tspi_Context_GetTpmObject(self.handle, &mut handle)
         };
         if result != TSS_SUCCESS {
-            Err(result)
-        } else {
-            Ok(TssTpm { context: self, handle: handle })
+            return Err(result);
         }
+        Ok(TssTpm { context: self, handle: handle })
     }
 }
 
@@ -75,17 +72,16 @@ impl<'context> TssTpm<'context> {
             Tspi_TPM_PcrRead(self.handle, pcr_index, &mut ulPcrValueLength, &mut pRgbPcrValue)
         };
         if result != TSS_SUCCESS {
-            Err(result)
-        } else {
-            let mut vec = Vec::new();
-            unsafe {
-                for i in 0..ulPcrValueLength {
-                    vec.push(*pRgbPcrValue.offset(i as isize));
-                }
-                Tspi_Context_FreeMemory(self.context.handle, pRgbPcrValue);
-            }
-            Ok(vec)
+            return Err(result);
         }
+        let mut vec = Vec::new();
+        unsafe {
+            for i in 0..ulPcrValueLength {
+                vec.push(*pRgbPcrValue.offset(i as isize));
+            }
+            Tspi_Context_FreeMemory(self.context.handle, pRgbPcrValue);
+        }
+        Ok(vec)
     }
 }
 
