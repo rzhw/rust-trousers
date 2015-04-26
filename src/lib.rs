@@ -10,7 +10,7 @@ pub const TSS_SUCCESS: TssResult = 0;
 pub struct TssContext {
     pub handle: u32
 }
-pub struct TssTpm<'context> {
+pub struct TssTPM<'context> {
     pub context: &'context TssContext,
     pub handle: u32
 }
@@ -48,7 +48,7 @@ impl TssContext {
         Ok(())
     }
 
-    pub fn get_tpm_object(&self) -> Result<TssTpm, TssResult> {
+    pub fn get_tpm_object(&self) -> Result<TssTPM, TssResult> {
         let mut handle = 0;
         let result = unsafe {
             Tspi_Context_GetTpmObject(self.handle, &mut handle)
@@ -56,7 +56,7 @@ impl TssContext {
         if result != TSS_SUCCESS {
             return Err(result);
         }
-        Ok(TssTpm { context: self, handle: handle })
+        Ok(TssTPM { context: self, handle: handle })
     }
 }
 
@@ -69,7 +69,7 @@ impl Drop for TssContext {
     }
 }
 
-impl<'context> TssTpm<'context> {
+impl<'context> TssTPM<'context> {
     pub fn pcr_read(&self, pcr_index: u32) -> Result<Vec<u8>, TssResult> {
         let mut ulPcrValueLength = -1;
         let mut pRgbPcrValue = 0 as *mut u8;
