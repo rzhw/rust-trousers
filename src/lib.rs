@@ -1,14 +1,14 @@
 use std::ptr;
 
-struct TssContext { handle: u32 }
-struct TssTpm<'context> { context: &'context TssContext, handle: u32 }
+pub type TssHContext = u32;
+pub type TssHTPM = u32;
+pub type TssResult = u32;
+pub type TssUnicode = u16;
 
-type TssHContext = u32;
-type TssHTPM = u32;
-type TssResult = u32;
-type TssUnicode = u16;
+pub const TSS_SUCCESS: TssResult = 0;
 
-const TSS_SUCCESS: TssResult = 0;
+pub struct TssContext { handle: u32 }
+pub struct TssTpm<'context> { context: &'context TssContext, handle: u32 }
 
 #[link(name = "tspi")]
 extern {
@@ -21,7 +21,7 @@ extern {
 }
 
 impl TssContext {
-    fn new() -> Result<TssContext, TssResult> {
+    pub fn new() -> Result<TssContext, TssResult> {
         let mut handle = 0;
         let result = unsafe {
             Tspi_Context_Create(&mut handle)
@@ -33,7 +33,7 @@ impl TssContext {
     }
 
     // TODO: support destination
-    fn connect(&self) -> Result<(), TssResult> {
+    pub fn connect(&self) -> Result<(), TssResult> {
         let result = unsafe {
             Tspi_Context_Connect(self.handle, ptr::null())
         };
@@ -43,7 +43,7 @@ impl TssContext {
         Ok(())
     }
 
-    fn get_tpm_object(&self) -> Result<TssTpm, TssResult> {
+    pub fn get_tpm_object(&self) -> Result<TssTpm, TssResult> {
         let mut handle = 0;
         let result = unsafe {
             Tspi_Context_GetTpmObject(self.handle, &mut handle)
@@ -65,7 +65,7 @@ impl Drop for TssContext {
 }
 
 impl<'context> TssTpm<'context> {
-    fn pcr_read(&self, pcr_index: u32) -> Result<Vec<u8>, TssResult> {
+    pub fn pcr_read(&self, pcr_index: u32) -> Result<Vec<u8>, TssResult> {
         let mut ulPcrValueLength = -1;
         let mut pRgbPcrValue = 0 as *mut u8;
         let result = unsafe {
@@ -83,40 +83,4 @@ impl<'context> TssTpm<'context> {
         }
         Ok(vec)
     }
-}
-
-fn main() {
-    // TODO: Any cleaner way to write this?
-    let contextresult = TssContext::new();
-    if let Ok(context) = contextresult {
-        if let Ok(_) = context.connect() {
-            if let Ok(tpm) = context.get_tpm_object() {
-                println!("I'M IN UR TPM READING UR PCRZ (From Rust!)");
-                println!("TPM handle: {:?}", tpm.handle);
-                for i in 0..24 {
-                    if let Ok(vec) = tpm.pcr_read(i) {
-                        print!("PCR {:02}", i);
-                        for j in 0..19 {
-                            print!(" {:02x}", vec[j]);
-                        }
-                        print!("\n");
-                    }
-                }
-            } else {
-                println!("Failed to get TPM handle :(")
-            }
-        } else {
-            println!("Failed to connect :(");
-        }
-    } else {
-        println!("Failed :(");
-    }
-
-    /*
-    match blah {
-        Ok(context) => println!("Context created! {:?}", context.handle),
-        Err(e) => println!("Context failed with err {:?}", e),
-    }
-    println!("Hello world!");
-    */
 }
