@@ -20,7 +20,7 @@ functionality is available. Pull requests are greatly appreciated!
 Module | Implemented | Partial | Missing
 -------|-------------|---------|--------
 4.3.3.1 Common methods | N/A | N/A | All
-4.3.3.2 Common context methods | Tspi_Context_Create, Tspi_Context_Close, Tspi_Context_FreeMemory, Tspi_Context_GetTPMObject | Tspi_Context_Connect | Tspi_SetAttribUint32, Tspi_GetAttribUint32, Tspi_SetAttribData, Tspi_GetAttribData, Tspi_Context_GetDefaultPolicy, Tspi_Context_CreateObject, Tspi_Context_CloseObject, Tspi_Context_GetCapability
+4.3.3.2 Common context methods | Tspi_Context_Create, Tspi_Context_Close, Tspi_Context_FreeMemory, Tspi_Context_GetTPMObject | Tspi_Context_Connect, Tspi_Context_CreateObject (TSS_OBJECT_TYPE_PCRS, ref 2.3.2.1) | Tspi_SetAttribUint32, Tspi_GetAttribUint32, Tspi_SetAttribData, Tspi_GetAttribData, Tspi_Context_GetDefaultPolicy, Tspi_Context_CloseObject, Tspi_Context_GetCapability
 4.3.4.3 | N/A | N/A | All
 4.3.4.4 | N/A | N/A | All
 4.3.4.5 | N/A | N/A | All
@@ -34,7 +34,7 @@ Module | Implemented | Partial | Missing
 4.3.4.13 Old PCR commands [(trivia)][1] | Tspi_TPM_PcrRead | Tspi_TPM_PcrExtend | Tspi_TPM_GetEvent, Tspi_TPM_GetEvents, Tspi_TPM_GetEventLog, Tspi_TPM_Quote
 4.3.4.14 | N/A | N/A | All
 4.3.4.15 | N/A | N/A | All
-4.3.4.16 New PCR commands | N/A | N/A | Tspi_TPM_PcrReset, Tspi_Data_Seal, Tspi_Data_SealX, Tspi_TPM_Quote2, Tspi_PcrComposite_SetPcrLocality, Tspi_PcrComposite_GetPcrLocality, Tspi_PcrComposite_GetCompositeHash, Tspi_PcrComposite_SelectPcrIndexEx
+4.3.4.16 New PCR commands | Tspi_TPM_PcrReset | N/A | Tspi_Data_Seal, Tspi_Data_SealX, Tspi_TPM_Quote2, Tspi_PcrComposite_SetPcrLocality, Tspi_PcrComposite_GetPcrLocality, Tspi_PcrComposite_GetCompositeHash, Tspi_PcrComposite_SelectPcrIndexEx
 4.3.4.17 | N/A | N/A | All
 4.3.4.18 | N/A | N/A | All
 4.3.4.19 | N/A | N/A | All

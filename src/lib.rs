@@ -1,11 +1,25 @@
 use std::ptr;
 
-pub type TssHContext = u32;
-pub type TssHTPM = u32;
+pub type TssFlag = u32;
+pub type TssHObject = u32;
+pub type TssHContext = TssHObject;
+pub type TssHTPM = TssHObject;
+pub type TssHPCRS = TssHObject;
 pub type TssResult = u32;
 pub type TssUnicode = u16;
 
 pub const TSS_SUCCESS: TssResult = 0;
+
+const TSS_OBJECT_TYPE_PCRS: TssFlag = 4;
+
+const TSS_PCRS_STRUCT_DEFAULT: TssFlag = 0;
+const TSS_PCRS_STRUCT_INFO: TssFlag = 1;
+const TSS_PCRS_STRUCT_INFO_LONG: TssFlag = 2;
+const TSS_PCRS_STRUCT_INFO_SHORT: TssFlag = 3;
+
+pub enum TssPcrsStructType {
+    Default, Info, InfoLong, InfoShort
+}
 
 pub struct TssContext {
     pub handle: u32
@@ -14,16 +28,22 @@ pub struct TssTPM<'context> {
     pub context: &'context TssContext,
     pub handle: u32
 }
+pub struct TssPCRComposite<'context> {
+    pub context: &'context TssContext,
+    pub handle: u32
+}
 
 #[link(name = "tspi")]
 extern {
     fn Tspi_Context_Create(phContext: *mut TssHContext) -> TssResult;
-    fn Tspi_Context_Connect(phContext: TssHContext, wszDestination: *const TssUnicode) -> TssResult;
-    fn Tspi_Context_GetTpmObject(phContext: TssHContext, phTPM: *mut TssHTPM) -> TssResult;
-    fn Tspi_Context_FreeMemory(phContext: TssHContext, rgbMemory: *mut u8) -> TssResult;
-    fn Tspi_Context_Close(phContext: TssHContext) -> TssResult;
+    fn Tspi_Context_Close(hContext: TssHContext) -> TssResult;
+    fn Tspi_Context_Connect(hContext: TssHContext, wszDestination: *const TssUnicode) -> TssResult;
+    fn Tspi_Context_FreeMemory(hContext: TssHContext, rgbMemory: *mut u8) -> TssResult;
+    fn Tspi_Context_CreateObject(hContext: TssHContext, objectType: TssFlag, initFlags: TssFlag, phObject: *mut TssHObject) -> TssResult;
+    fn Tspi_Context_GetTpmObject(hContext: TssHContext, phTPM: *mut TssHTPM) -> TssResult;
     fn Tspi_TPM_PcrRead(hTPM: TssHTPM, ulPcrIndex: u32, pulPcrValueLength: *mut u32, prgbPcrValue: *mut *mut u8) -> TssResult;
     fn Tspi_TPM_PcrExtend(hTPM: TssHTPM, ulPcrIndex: u32, ulPcrDataLength: u32, pbPcrData: *const u8, pPcrEvent: *mut u8, pulPcrValueLength: *mut u32, prgbPcrValue: *mut *mut u8) -> TssResult;
+    fn Tspi_TPM_PcrReset(hTPM: TssHTPM, hPcrComposite: TssHPCRS) -> TssResult;
 }
 
 impl TssContext {
@@ -58,6 +78,28 @@ impl TssContext {
             return Err(result);
         }
         Ok(TssTPM { context: self, handle: handle })
+    }
+
+    // TODO: Should selecting an index be tied into actually creating the PCRS object?
+    pub fn create_pcr_composite(&self, pcrs_type: TssPcrsStructType) -> Result<TssPCRComposite, TssResult> {
+        let mut handle = 0;
+        // Do it as a <> instead? Would mean we can actually make functions taking *only* PCR
+        // composite objects that are supported by the function!
+        // e.g. Tspi_PcrComposite_SelectPcrIndex only supports TCPA_PCR_INFO structures
+        // Maybe do 1.2 structures as an enum...
+        let init_flags = match pcrs_type {
+            TssPcrsStructType::Default => TSS_PCRS_STRUCT_DEFAULT,
+            TssPcrsStructType::Info => TSS_PCRS_STRUCT_INFO,
+            TssPcrsStructType::InfoLong => TSS_PCRS_STRUCT_INFO_LONG,
+            TssPcrsStructType::InfoShort => TSS_PCRS_STRUCT_INFO_SHORT
+        };
+        let result = unsafe {
+            Tspi_Context_CreateObject(self.handle, TSS_OBJECT_TYPE_PCRS, init_flags, &mut handle)
+        };
+        if result != TSS_SUCCESS {
+            return Err(result);
+        }
+        Ok(TssPCRComposite { context: self, handle: handle })
     }
 }
 
@@ -113,4 +155,17 @@ impl<'context> TssTPM<'context> {
         }
         Ok(vec)
     }
+
+    pub fn pcr_reset(&self, pcr_composite: TssPCRComposite) -> Result<(), TssResult> {
+        let result = unsafe {
+            Tspi_TPM_PcrReset(self.handle, pcr_composite.handle)
+        };
+        if result != TSS_SUCCESS {
+            return Err(result);
+        }
+        Ok(())
+    }
+}
+
+impl<'context> TssPCRComposite<'context> {
 }
