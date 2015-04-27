@@ -31,42 +31,37 @@ pub enum TssPcrsStructType {
 
 pub struct TssPCRCompositeInfo<'context> {
     pub context: &'context TssContext,
-    pub handle: u32
+    pub handle: TssHPCRS
 }
 pub struct TssPCRCompositeInfoLong<'context> {
     pub context: &'context TssContext,
-    pub handle: u32
+    pub handle: TssHPCRS
 }
 pub struct TssPCRCompositeInfoShort<'context> {
     pub context: &'context TssContext,
-    pub handle: u32
+    pub handle: TssHPCRS
 }
 pub trait TcpaPcrInfoAny {
-    fn get_handle(&self) -> u32;
+    fn get_handle(&self) -> TssHPCRS;
 }
 pub trait TcpaPcrInfo1_1 : TcpaPcrInfoAny {
-    fn get_handle(&self) -> u32;
+    fn get_handle(&self) -> TssHPCRS;
 }
 pub trait TcpaPcrInfo1_2 : TcpaPcrInfoAny {
-    fn get_handle(&self) -> u32;
+    fn get_handle(&self) -> TssHPCRS;
+    fn select_pcr_index_ex(&self, pcr_index: u32, direction: u32) -> Result<(), TssResult>;
 }
 impl<'c> TcpaPcrInfoAny for TssPCRCompositeInfo<'c> {
-    fn get_handle(&self) -> u32 { self.handle }
+    fn get_handle(&self) -> TssHPCRS { self.handle }
 }
 impl<'c> TcpaPcrInfo1_1 for TssPCRCompositeInfo<'c> {
-    fn get_handle(&self) -> u32 { self.handle }
+    fn get_handle(&self) -> TssHPCRS { self.handle }
 }
 impl<'c> TcpaPcrInfoAny for TssPCRCompositeInfoLong<'c> {
-    fn get_handle(&self) -> u32 { self.handle }
-}
-impl<'c> TcpaPcrInfo1_2 for TssPCRCompositeInfoLong<'c> {
-    fn get_handle(&self) -> u32 { self.handle }
+    fn get_handle(&self) -> TssHPCRS { self.handle }
 }
 impl<'c> TcpaPcrInfoAny for TssPCRCompositeInfoShort<'c> {
-    fn get_handle(&self) -> u32 { self.handle }
-}
-impl<'c> TcpaPcrInfo1_2 for TssPCRCompositeInfoShort<'c> {
-    fn get_handle(&self) -> u32 { self.handle }
+    fn get_handle(&self) -> TssHPCRS { self.handle }
 }
 
 #[link(name = "tspi")]
@@ -80,6 +75,7 @@ extern {
     fn Tspi_TPM_PcrRead(hTPM: TssHTPM, ulPcrIndex: u32, pulPcrValueLength: *mut u32, prgbPcrValue: *mut *mut u8) -> TssResult;
     fn Tspi_TPM_PcrExtend(hTPM: TssHTPM, ulPcrIndex: u32, ulPcrDataLength: u32, pbPcrData: *const u8, pPcrEvent: *mut u8, pulPcrValueLength: *mut u32, prgbPcrValue: *mut *mut u8) -> TssResult;
     fn Tspi_TPM_PcrReset(hTPM: TssHTPM, hPcrComposite: TssHPCRS) -> TssResult;
+    fn Tspi_PcrComposite_SelectPcrIndexEx(hPcrComposite: TssHPCRS, ulPcrIndex: u32, direction: u32) -> TssResult;
 }
 
 impl TssContext {
@@ -209,5 +205,28 @@ impl<'context> TssTPM<'context> {
             return Err(result);
         }
         Ok(())
+    }
+}
+
+fn pcr_composite_select_pcr_index_ex(handle: TssHPCRS, pcr_index: u32, direction: u32) -> Result<(), TssResult> {
+    let result = unsafe {
+        Tspi_PcrComposite_SelectPcrIndexEx(handle, pcr_index, direction)
+    };
+    if result != TSS_SUCCESS {
+        return Err(result);
+    }
+    Ok(())
+}
+
+impl<'c> TcpaPcrInfo1_2 for TssPCRCompositeInfoLong<'c> {
+    fn get_handle(&self) -> u32 { self.handle }
+    fn select_pcr_index_ex(&self, pcr_index: u32, direction: u32) -> Result<(), TssResult> {
+        pcr_composite_select_pcr_index_ex(self.handle, pcr_index, direction)
+    }
+}
+impl<'c> TcpaPcrInfo1_2 for TssPCRCompositeInfoShort<'c> {
+    fn get_handle(&self) -> u32 { self.handle }
+    fn select_pcr_index_ex(&self, pcr_index: u32, direction: u32) -> Result<(), TssResult> {
+        pcr_composite_select_pcr_index_ex(self.handle, pcr_index, direction)
     }
 }

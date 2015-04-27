@@ -34,7 +34,7 @@ Module | Implemented | Partial | Missing
 4.3.4.13 Old PCR commands [(trivia)][1] | Tspi_TPM_PcrRead | Tspi_TPM_PcrExtend | Tspi_TPM_GetEvent, Tspi_TPM_GetEvents, Tspi_TPM_GetEventLog, Tspi_TPM_Quote
 4.3.4.14 | N/A | N/A | All
 4.3.4.15 | N/A | N/A | All
-4.3.4.16 New PCR commands | Tspi_TPM_PcrReset | N/A | Tspi_Data_Seal, Tspi_Data_SealX, Tspi_TPM_Quote2, Tspi_PcrComposite_SetPcrLocality, Tspi_PcrComposite_GetPcrLocality, Tspi_PcrComposite_GetCompositeHash, Tspi_PcrComposite_SelectPcrIndexEx
+4.3.4.16 New PCR commands | Tspi_TPM_PcrReset, Tspi_PcrComposite_SelectPcrIndexEx | N/A | Tspi_Data_Seal, Tspi_Data_SealX, Tspi_TPM_Quote2, Tspi_PcrComposite_SetPcrLocality, Tspi_PcrComposite_GetPcrLocality, Tspi_PcrComposite_GetCompositeHash
 4.3.4.17 | N/A | N/A | All
 4.3.4.18 | N/A | N/A | All
 4.3.4.19 | N/A | N/A | All
