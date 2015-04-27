@@ -11,11 +11,15 @@ This library attempts to wrap the lower level functionality in a more idiomatic,
 abstracted way. The ideal: freeing the developer from handles, pointers,
 pointers-to-pointers, and other memory management and boilerplate code.
 
+**Full disclosure:** This library is *very* incomplete, and is my first Rust
+project ("Trusted Computing", right :P). As a result, the API is very likely to
+change *drastically* as I learn what makes sense in Rust, as well as implement
+more functionality.
+
 ## Coverage
 
-At the moment this library is *very* incomplete. The TSS spec is exhaustive
-(742 pages), so there is a lot to go through. The below table indicates what
-functionality is available. Pull requests are greatly appreciated!
+The below table indicates what functionality is available. Pull requests are
+greatly appreciated!
 
 Module | Implemented | Partial | Missing
 -------|-------------|---------|--------
