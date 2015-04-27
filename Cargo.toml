@@ -1,6 +1,6 @@
 [package]
 name = "trousers"
-version = "0.1.0"
+version = "0.0.0"
 authors = ["Richard Wang <zhwang@live.com.au>"]
 description = "TrouSerS bindings for Rust"
 repository = "https://github.com/rzhw/rust-trousers"
