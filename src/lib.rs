@@ -1,4 +1,6 @@
-use std::ptr;
+extern crate trousers_sys;
+
+use trousers_sys::tspi::*;
 
 pub type TssFlag = u32;
 pub type TssHObject = u32;
@@ -64,20 +66,6 @@ impl<'c> TcpaPcrInfoAny for TssPCRCompositeInfoShort<'c> {
     fn get_handle(&self) -> TssHPCRS { self.handle }
 }
 
-#[link(name = "tspi")]
-extern {
-    fn Tspi_Context_Create(phContext: *mut TssHContext) -> TssResult;
-    fn Tspi_Context_Close(hContext: TssHContext) -> TssResult;
-    fn Tspi_Context_Connect(hContext: TssHContext, wszDestination: *const TssUnicode) -> TssResult;
-    fn Tspi_Context_FreeMemory(hContext: TssHContext, rgbMemory: *mut u8) -> TssResult;
-    fn Tspi_Context_CreateObject(hContext: TssHContext, objectType: TssFlag, initFlags: TssFlag, phObject: *mut TssHObject) -> TssResult;
-    fn Tspi_Context_GetTpmObject(hContext: TssHContext, phTPM: *mut TssHTPM) -> TssResult;
-    fn Tspi_TPM_PcrRead(hTPM: TssHTPM, ulPcrIndex: u32, pulPcrValueLength: *mut u32, prgbPcrValue: *mut *mut u8) -> TssResult;
-    fn Tspi_TPM_PcrExtend(hTPM: TssHTPM, ulPcrIndex: u32, ulPcrDataLength: u32, pbPcrData: *const u8, pPcrEvent: *mut u8, pulPcrValueLength: *mut u32, prgbPcrValue: *mut *mut u8) -> TssResult;
-    fn Tspi_TPM_PcrReset(hTPM: TssHTPM, hPcrComposite: TssHPCRS) -> TssResult;
-    fn Tspi_PcrComposite_SelectPcrIndexEx(hPcrComposite: TssHPCRS, ulPcrIndex: u32, direction: u32) -> TssResult;
-}
-
 impl TssContext {
     pub fn new() -> Result<TssContext, TssResult> {
         let mut handle = 0;
@@ -93,7 +81,7 @@ impl TssContext {
     // TODO: support destination
     pub fn connect(&self) -> Result<(), TssResult> {
         let result = unsafe {
-            Tspi_Context_Connect(self.handle, ptr::null())
+            Tspi_Context_Connect(self.handle, 0 as *mut u16)
         };
         if result != TSS_SUCCESS {
             return Err(result);
@@ -180,7 +168,7 @@ impl<'context> TssTPM<'context> {
         let mut pcr_value_ptr = 0 as *mut u8;
         let result = unsafe {
             // TODO: Is this u32 cast safe?
-            Tspi_TPM_PcrExtend(self.handle, pcr_index, data.len() as u32, data.as_ptr(), 0 as *mut u8, &mut pcr_value_length, &mut pcr_value_ptr)
+            Tspi_TPM_PcrExtend(self.handle, pcr_index, data.len() as u32, data.as_ptr() as *mut u8, 0 as *mut Struct_tdTSS_PCR_EVENT, &mut pcr_value_length, &mut pcr_value_ptr)
         };
         if result != TSS_SUCCESS {
             return Err(result);

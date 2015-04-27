@@ -1,15 +1,15 @@
 [package]
-name = "trousers"
+name = "trousers-sys"
 version = "0.0.0"
 authors = ["Richard Wang <zhwang@live.com.au>"]
-description = "TrouSerS bindings for Rust"
+description = "Native bindings to the trousers library"
 repository = "https://github.com/rzhw/rust-trousers"
 keywords = ["TrouSerS", "TPM", "TSS"]
 license = "MIT"
 
 [dependencies]
-trousers-sys = { path = "trousers-sys", version = "0.0.0" }
+libc = "0.1"
 
 [lib]
-name = "trousers"
-path = "src/lib.rs"
+name = "trousers_sys"
+path = "lib.rs"
