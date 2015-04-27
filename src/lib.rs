@@ -17,10 +17,6 @@ const TSS_PCRS_STRUCT_INFO: TssFlag = 1;
 const TSS_PCRS_STRUCT_INFO_LONG: TssFlag = 2;
 const TSS_PCRS_STRUCT_INFO_SHORT: TssFlag = 3;
 
-pub enum TssPcrsStructType {
-    Default, Info, InfoLong, InfoShort
-}
-
 pub struct TssContext {
     pub handle: u32
 }
@@ -28,9 +24,49 @@ pub struct TssTPM<'context> {
     pub context: &'context TssContext,
     pub handle: u32
 }
-pub struct TssPCRComposite<'context> {
+
+pub enum TssPcrsStructType {
+    Default, Info, InfoLong, InfoShort
+}
+
+pub struct TssPCRCompositeInfo<'context> {
     pub context: &'context TssContext,
     pub handle: u32
+}
+pub struct TssPCRCompositeInfoLong<'context> {
+    pub context: &'context TssContext,
+    pub handle: u32
+}
+pub struct TssPCRCompositeInfoShort<'context> {
+    pub context: &'context TssContext,
+    pub handle: u32
+}
+pub trait TcpaPcrInfoAny {
+    fn get_handle(&self) -> u32;
+}
+pub trait TcpaPcrInfo1_1 : TcpaPcrInfoAny {
+    fn get_handle(&self) -> u32;
+}
+pub trait TcpaPcrInfo1_2 : TcpaPcrInfoAny {
+    fn get_handle(&self) -> u32;
+}
+impl<'c> TcpaPcrInfoAny for TssPCRCompositeInfo<'c> {
+    fn get_handle(&self) -> u32 { self.handle }
+}
+impl<'c> TcpaPcrInfo1_1 for TssPCRCompositeInfo<'c> {
+    fn get_handle(&self) -> u32 { self.handle }
+}
+impl<'c> TcpaPcrInfoAny for TssPCRCompositeInfoLong<'c> {
+    fn get_handle(&self) -> u32 { self.handle }
+}
+impl<'c> TcpaPcrInfo1_2 for TssPCRCompositeInfoLong<'c> {
+    fn get_handle(&self) -> u32 { self.handle }
+}
+impl<'c> TcpaPcrInfoAny for TssPCRCompositeInfoShort<'c> {
+    fn get_handle(&self) -> u32 { self.handle }
+}
+impl<'c> TcpaPcrInfo1_2 for TssPCRCompositeInfoShort<'c> {
+    fn get_handle(&self) -> u32 { self.handle }
 }
 
 #[link(name = "tspi")]
@@ -80,26 +116,35 @@ impl TssContext {
         Ok(TssTPM { context: self, handle: handle })
     }
 
-    // TODO: Should selecting an index be tied into actually creating the PCRS object?
-    pub fn create_pcr_composite(&self, pcrs_type: TssPcrsStructType) -> Result<TssPCRComposite, TssResult> {
+    pub fn create_pcr_composite_info(&self) -> Result<TssPCRCompositeInfo, TssResult> {
         let mut handle = 0;
-        // Do it as a <> instead? Would mean we can actually make functions taking *only* PCR
-        // composite objects that are supported by the function!
-        // e.g. Tspi_PcrComposite_SelectPcrIndex only supports TCPA_PCR_INFO structures
-        // Maybe do 1.2 structures as an enum...
-        let init_flags = match pcrs_type {
-            TssPcrsStructType::Default => TSS_PCRS_STRUCT_DEFAULT,
-            TssPcrsStructType::Info => TSS_PCRS_STRUCT_INFO,
-            TssPcrsStructType::InfoLong => TSS_PCRS_STRUCT_INFO_LONG,
-            TssPcrsStructType::InfoShort => TSS_PCRS_STRUCT_INFO_SHORT
-        };
         let result = unsafe {
-            Tspi_Context_CreateObject(self.handle, TSS_OBJECT_TYPE_PCRS, init_flags, &mut handle)
+            Tspi_Context_CreateObject(self.handle, TSS_OBJECT_TYPE_PCRS, TSS_PCRS_STRUCT_INFO, &mut handle)
         };
         if result != TSS_SUCCESS {
             return Err(result);
         }
-        Ok(TssPCRComposite { context: self, handle: handle })
+        Ok(TssPCRCompositeInfo { context: self, handle: handle })
+    }
+    pub fn create_pcr_composite_info_long(&self) -> Result<TssPCRCompositeInfoLong, TssResult> {
+        let mut handle = 0;
+        let result = unsafe {
+            Tspi_Context_CreateObject(self.handle, TSS_OBJECT_TYPE_PCRS, TSS_PCRS_STRUCT_INFO_LONG, &mut handle)
+        };
+        if result != TSS_SUCCESS {
+            return Err(result);
+        }
+        Ok(TssPCRCompositeInfoLong { context: self, handle: handle })
+    }
+    pub fn create_pcr_composite_info_short(&self) -> Result<TssPCRCompositeInfoShort, TssResult> {
+        let mut handle = 0;
+        let result = unsafe {
+            Tspi_Context_CreateObject(self.handle, TSS_OBJECT_TYPE_PCRS, TSS_PCRS_STRUCT_INFO_SHORT, &mut handle)
+        };
+        if result != TSS_SUCCESS {
+            return Err(result);
+        }
+        Ok(TssPCRCompositeInfoShort { context: self, handle: handle })
     }
 }
 
@@ -156,16 +201,13 @@ impl<'context> TssTPM<'context> {
         Ok(vec)
     }
 
-    pub fn pcr_reset(&self, pcr_composite: TssPCRComposite) -> Result<(), TssResult> {
+    pub fn pcr_reset(&self, pcr_composite: &TcpaPcrInfoAny) -> Result<(), TssResult> {
         let result = unsafe {
-            Tspi_TPM_PcrReset(self.handle, pcr_composite.handle)
+            Tspi_TPM_PcrReset(self.handle, pcr_composite.get_handle())
         };
         if result != TSS_SUCCESS {
             return Err(result);
         }
         Ok(())
     }
-}
-
-impl<'context> TssPCRComposite<'context> {
 }
