@@ -134,9 +134,11 @@ pub struct TssPCRCompositeInfoShort<'context> {
 pub trait TcpaPcrInfoAny {
     fn get_handle(&self) -> TssHPCRS;
 }
+#[allow(non_camel_case_types)]
 pub trait TcpaPcrInfo1_1 : TcpaPcrInfoAny {
     fn get_handle(&self) -> TssHPCRS;
 }
+#[allow(non_camel_case_types)]
 pub trait TcpaPcrInfo1_2 : TcpaPcrInfoAny {
     fn get_handle(&self) -> TssHPCRS;
     fn select_pcr_index_ex(&self, pcr_index: u32, direction: u32) -> Result<(), TssResult>;
