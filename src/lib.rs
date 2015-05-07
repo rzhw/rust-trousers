@@ -109,11 +109,13 @@ pub enum TssPcrsStructType {
     Default, Info, InfoLong, InfoShort
 }
 
+// TODO: need to have Drop?
 pub struct TssPolicy<'context> {
     pub context: &'context TssContext,
     pub handle: TssHPCRS
 }
 
+// TODO: need to have Drop?
 pub struct TssRsaKey<'context> {
     pub context: &'context TssContext,
     pub handle: TssHPCRS
@@ -319,6 +321,9 @@ impl<'context> TssTPM<'context> {
 }
 
 impl<'context> TssPolicy<'context> {
+    //pub fn set_secret(mode: TssSecretMode, secret_length: u32, secret: &[u8]) -> Result<(), TssResult> {
+        // TODO
+    //}
 }
 
 fn pcr_composite_select_pcr_index_ex(handle: TssHPCRS, pcr_index: u32, direction: u32) -> Result<(), TssResult> {
