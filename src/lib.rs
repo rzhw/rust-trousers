@@ -1,5 +1,6 @@
 extern crate trousers_sys;
 
+use std::slice;
 use trousers_sys::tspi::*;
 
 pub type TssFlag = u32;
@@ -121,6 +122,13 @@ pub struct TssRsaKey<'context> {
     pub handle: TssHPCRS
 }
 
+pub struct TssValidation {
+    pub version_info: TSS_VERSION,
+    pub external_data: Vec<u8>,
+    pub data: Vec<u8>,
+    pub validation_data: Vec<u8>
+}
+
 pub struct TssPCRCompositeInfo<'context> {
     pub context: &'context TssContext,
     pub handle: TssHPCRS
@@ -156,6 +164,17 @@ impl<'c> TcpaPcrInfoAny for TssPCRCompositeInfoLong<'c> {
 }
 impl<'c> TcpaPcrInfoAny for TssPCRCompositeInfoShort<'c> {
     fn get_handle(&self) -> TssHPCRS { self.handle }
+}
+
+fn copy_raw_ptr_to_vec(ptr: *const u8, length: usize) -> Vec<u8> {
+    let ptr_slice = unsafe {
+        slice::from_raw_parts(ptr, length)
+    };
+    let mut vec = Vec::new();
+    for byte in ptr_slice {
+        vec.push(*byte)
+    }
+    vec
 }
 
 impl TssContext {
@@ -266,6 +285,28 @@ impl Drop for TssContext {
 }
 
 impl<'context> TssTPM<'context> {
+    // TODO: UNTESTED
+    pub fn quote(&self, ident_key: &TssRsaKey, pcr_composite: &TssPCRCompositeInfo, external_data: &[u8; 20]) -> Result<TssValidation, TssResult> {
+        let mut validation_data = TSS_VALIDATION { versionInfo: TSS_VERSION { bMajor: 0, bMinor: 0, bRevMajor: 0, bRevMinor: 0 }, ulExternalDataLength: 20, rgbExternalData: external_data.as_ptr() as *mut u8, ulDataLength: 0, rgbData: 0 as *mut u8, ulValidationDataLength: 0, rgbValidationData: 0 as *mut u8 };
+        let result = unsafe {
+            Tspi_TPM_Quote(self.handle, ident_key.handle, pcr_composite.handle, &mut validation_data)
+        };
+        if result != TSS_SUCCESS {
+            return Err(result);
+        }
+        let validation_result = TssValidation {
+            version_info: validation_data.versionInfo.clone(),
+            external_data: copy_raw_ptr_to_vec(external_data as *const u8, external_data.len()),
+            data: copy_raw_ptr_to_vec(validation_data.rgbData, validation_data.ulDataLength as usize),
+            validation_data: copy_raw_ptr_to_vec(validation_data.rgbValidationData, validation_data.ulValidationDataLength as usize)
+        };
+        unsafe {
+            Tspi_Context_FreeMemory(self.context.handle, validation_data.rgbData);
+            Tspi_Context_FreeMemory(self.context.handle, validation_data.rgbValidationData);
+        }
+        Ok(validation_result)
+    }
+
     pub fn pcr_read(&self, pcr_index: u32) -> Result<Vec<u8>, TssResult> {
         let mut pcr_value_length = 0;
         let mut pcr_value_ptr = 0 as *mut u8;
