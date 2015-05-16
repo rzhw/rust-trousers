@@ -377,6 +377,17 @@ fn pcr_composite_select_pcr_index_ex(handle: TssHPCRS, pcr_index: u32, direction
     Ok(())
 }
 
+impl<'c> TssPCRCompositeInfo<'c> {
+    fn select_pcr_index(&self, pcr_index: u32) -> Result<(), TssResult> {
+        let result = unsafe {
+            Tspi_PcrComposite_SelectPcrIndex(self.handle, pcr_index)
+        };
+        if result != TSS_SUCCESS {
+            return Err(result);
+        }
+        Ok(())
+    }
+}
 impl<'c> TcpaPcrInfo1_2 for TssPCRCompositeInfoLong<'c> {
     fn get_handle(&self) -> u32 { self.handle }
     fn select_pcr_index_ex(&self, pcr_index: u32, direction: u32) -> Result<(), TssResult> {
