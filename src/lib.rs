@@ -13,6 +13,11 @@ pub type TssUnicode = u16;
 
 pub const TSS_SUCCESS: TssResult = 0;
 
+pub const TSS_UUID_SRK: TSS_UUID = TSS_UUID { ulTimeLow: 0, usTimeMid: 0, usTimeHigh: 0, bClockSeqHigh: 0, bClockSeqLow: 0, rgbNode: [0, 0, 0, 0, 0, 1] };
+
+pub const TSS_PS_TYPE_USER: TssFlag = 1;
+pub const TSS_PS_TYPE_SYSTEM: TssFlag = 2;
+
 const TSS_OBJECT_TYPE_POLICY: TssFlag = 1;
 const TSS_OBJECT_TYPE_RSAKEY: TssFlag = 2;
 const TSS_OBJECT_TYPE_PCRS: TssFlag = 4;
@@ -209,6 +214,17 @@ impl TssContext {
             return Err(result);
         }
         Ok(TssTPM { context: self, handle: handle })
+    }
+
+    pub fn load_key_by_uuid(&self, persistent_storage_type: TssFlag, uuid_data: TSS_UUID) -> Result<TssRsaKey, TssResult> {
+        let mut handle = 0;
+        let result = unsafe {
+            Tspi_Context_LoadKeyByUUID(self.handle, persistent_storage_type, uuid_data, &mut handle)
+        };
+        if result != TSS_SUCCESS {
+            return Err(result);
+        }
+        Ok(TssRsaKey { context: self, handle: handle })
     }
 
     // TODO: DRY creating objects, probably use try!
