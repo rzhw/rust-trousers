@@ -1,25 +1,28 @@
 # rust-trousers
 
 Rust bindings for TrouSerS, an open-source TSS implementation.
-A work in progress.
 
 ## Introduction
 
-TrouSerS is compliant with the TCG Software Stack (TSS) 1.2 (with minor
-differences), which can be found [here](https://www.trustedcomputinggroup.org/resources/tcg_software_stack_tss_specification).
-This library attempts to wrap the lower level functionality in a more idiomatic,
-abstracted way. The ideal: freeing the developer from handles, pointers,
-pointers-to-pointers, and other memory management and boilerplate code.
+TrouSerS is compliant with the [TCG Software Stack (TSS) 1.2](https://www.trustedcomputinggroup.org/resources/tcg_software_stack_tss_specification)
+(with minor differences). This library attempts to wrap the lower level
+functionality in a more object-oriented interface, as well as reducing the
+burden of manual memory management, whilst retaining strong similarities to the
+TSS interface. (For example, implementing a singular function to extend a PCR is
+out of scope.)
 
-**Full disclosure:** This library is *very* incomplete, and is my first Rust
-project ("Trusted Computing", right :P). As a result, the API is very likely to
-change *drastically* as I learn what makes sense in Rust, as well as implement
-more functionality.
+The main `trousers` crate contains the wrapping interface, and depends on the
+`trousers-sys` crate, which includes direct bindings by rust-bindgen. The
+bindings were generated off TrouSerS 0.3.11.2-1, from the Ubuntu trusty/main
+repositories.
+
+Please note that this library has been developed primarily as a side project.
+While I would like to achieve full coverage of TrouSerS, this effectively means
+full coverage of the TSS, a monumental task to perform alone out of spare time.
+The API is also not set in stone at this time, and may change drastically.
+Contributions are welcome!
 
 ## Coverage
-
-The below table indicates what functionality is available. Pull requests are
-greatly appreciated!
 
 Module | Implemented | Partial | Missing
 -------|-------------|---------|--------
