@@ -26,8 +26,8 @@ Contributions are welcome!
 
 Module | Implemented | Partial | Missing
 -------|-------------|---------|--------
-4.3.3.1 Common methods | N/A | N/A | All
-4.3.3.2 Common context methods | Tspi_Context_Create, Tspi_Context_Close, Tspi_Context_FreeMemory, Tspi_Context_GetTPMObject | Tspi_Context_Connect, Tspi_Context_CreateObject (TSS_OBJECT_TYPE_PCRS, ref 2.3.2.1) | Tspi_SetAttribUint32, Tspi_GetAttribUint32, Tspi_SetAttribData, Tspi_GetAttribData, Tspi_Context_GetDefaultPolicy, Tspi_Context_CloseObject, Tspi_Context_GetCapability
+4.3.3.1 Common methods | N/A | Tspi_SetAttribData (for TSS_OBJECT_TYPE_RSAKEY) | Tspi_SetAttribUint32, Tspi_GetAttribUint32, Tspi_GetAttribData, Tspi_ChangeAuth, Tspi_ChangeAuthAsym, Tspi_GetPolicyObject
+4.3.3.2 Common context methods | Tspi_Context_Create, Tspi_Context_Close, Tspi_Context_FreeMemory, Tspi_Context_GetTPMObject | Tspi_Context_Connect, Tspi_Context_CreateObject (TSS_OBJECT_TYPE_PCRS, ref 2.3.2.1) | Tspi_Context_GetDefaultPolicy, Tspi_Context_CloseObject, Tspi_Context_GetCapability
 4.3.4.1 | N/A | N/A | All
 4.3.4.2 Finding, Loading, and Registering Keys in a Context | Tspi_Context_LoadKeyByUUID | N/A | Tspi_Context_LoadKeyByBlob, Tspi_Context_RegisterKey, Tspi_Context_UnregisterKey, Tspi_Context_GetKeyByUUID, Tspi_Context_GetKeyByPublicInfo, Tspi_Context_GetRegisteredKeysByUUID, Tspi_Context_GetRegisteredKeysByUUID2, Tspi_TPM_KeyControlOwner
 4.3.4.3 | N/A | N/A | All

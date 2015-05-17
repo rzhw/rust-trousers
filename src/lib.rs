@@ -103,6 +103,11 @@ pub enum TssKeyStruct {
     Key12 = TSS_KEY_STRUCT_KEY12 as isize
 }
 
+pub trait TssObject {
+    fn get_handle(&self) -> TssHObject;
+    fn set_attrib_data(&self, attrib_flag: TssFlag, sub_flag: TssFlag, attrib_data: &[u8]) -> Result<(), TssResult>;
+}
+
 pub struct TssContext {
     pub handle: u32
 }
@@ -124,7 +129,7 @@ pub struct TssPolicy<'context> {
 // TODO: need to have Drop?
 pub struct TssRsaKey<'context> {
     pub context: &'context TssContext,
-    pub handle: TssHPCRS
+    pub handle: TssHObject
 }
 
 pub struct TssValidation {
@@ -182,6 +187,17 @@ fn copy_raw_ptr_to_vec(ptr: *const u8, length: usize) -> Vec<u8> {
     vec
 }
 
+fn set_attrib_data_impl(object: &TssObject, attrib_flag: TssFlag, sub_flag: TssFlag, attrib_data: &[u8]) -> Result<(), TssResult> {
+    let result = unsafe {
+        // TODO is usize to u32 cast safe?
+        Tspi_SetAttribData(object.get_handle(), attrib_flag, sub_flag, attrib_data.len() as u32, attrib_data.as_ptr() as *mut u8)
+    };
+    if result != TSS_SUCCESS {
+        return Err(result);
+    }
+    Ok(())
+}
+
 impl TssContext {
     pub fn new() -> Result<TssContext, TssResult> {
         let mut handle = 0;
@@ -229,6 +245,7 @@ impl TssContext {
 
     // TODO: DRY creating objects, probably use try!
 
+    // TODO: make this signature shorter? give default values?
     pub fn create_rsakey(&self, key_size: TssKeySize, key_type: TssKeyType,
         auth: TssKeyAuthorization, volatile: TssKeyVolatility, migratable: TssKeyMigratability,
         struct_version: TssKeyStruct) -> Result<TssRsaKey, TssResult> {
@@ -381,6 +398,13 @@ impl<'context> TssPolicy<'context> {
     //pub fn set_secret(mode: TssSecretMode, secret_length: u32, secret: &[u8]) -> Result<(), TssResult> {
         // TODO
     //}
+}
+
+impl<'c> TssObject for TssRsaKey<'c> {
+    fn get_handle(&self) -> TssHObject { self.handle }
+    fn set_attrib_data(&self, attrib_flag: TssFlag, sub_flag: TssFlag, attrib_data: &[u8]) -> Result<(), TssResult> {
+        set_attrib_data_impl(self, attrib_flag, sub_flag, attrib_data)
+    }
 }
 
 fn pcr_composite_select_pcr_index_ex(handle: TssHPCRS, pcr_index: u32, direction: u32) -> Result<(), TssResult> {
