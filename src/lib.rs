@@ -1,6 +1,10 @@
 extern crate trousers_sys;
 
+use std::error;
+use std::ffi;
+use std::fmt;
 use std::slice;
+use trousers_sys::trousers::*;
 use trousers_sys::tspi::*;
 
 pub type TssFlag = u32;
@@ -10,6 +14,34 @@ pub type TssHTPM = TssHObject;
 pub type TssHPCRS = TssHObject;
 pub type TssResult = u32;
 pub type TssUnicode = u16;
+
+#[derive(Debug)]
+pub struct TssError {
+    pub result: TssResult
+}
+
+impl fmt::Display for TssError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        try!(fmt.write_str(error::Error::description(self)));
+        Ok(())
+    }
+}
+
+impl error::Error for TssError {
+    fn description(&self) -> &str {
+        let c_buf = unsafe { Trspi_Error_String(self.result) };
+        let c_str = unsafe { ffi::CStr::from_ptr(c_buf) };
+        let buf: &[u8] = c_str.to_bytes();
+        let str_slice: &str = std::str::from_utf8(buf).unwrap();
+        str_slice
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        None
+    }
+}
+
+// TODO macros for the funcitons below
 
 pub const TSS_SUCCESS: TssResult = 0;
 
@@ -105,7 +137,7 @@ pub enum TssKeyStruct {
 
 pub trait TssObject {
     fn get_handle(&self) -> TssHObject;
-    fn set_attrib_data(&self, attrib_flag: TssFlag, sub_flag: TssFlag, attrib_data: &[u8]) -> Result<(), TssResult>;
+    fn set_attrib_data(&self, attrib_flag: TssFlag, sub_flag: TssFlag, attrib_data: &[u8]) -> Result<(), TssError>;
 }
 
 pub struct TssContext {
@@ -161,7 +193,7 @@ pub trait TcpaPcrInfo1_1 : TcpaPcrInfoAny {
 #[allow(non_camel_case_types)]
 pub trait TcpaPcrInfo1_2 : TcpaPcrInfoAny {
     fn get_handle(&self) -> TssHPCRS;
-    fn select_pcr_index_ex(&self, pcr_index: u32, direction: u32) -> Result<(), TssResult>;
+    fn select_pcr_index_ex(&self, pcr_index: u32, direction: u32) -> Result<(), TssError>;
 }
 impl<'c> TcpaPcrInfoAny for TssPCRCompositeInfo<'c> {
     fn get_handle(&self) -> TssHPCRS { self.handle }
@@ -187,58 +219,58 @@ fn copy_raw_ptr_to_vec(ptr: *const u8, length: usize) -> Vec<u8> {
     vec
 }
 
-fn set_attrib_data_impl(object: &TssObject, attrib_flag: TssFlag, sub_flag: TssFlag, attrib_data: &[u8]) -> Result<(), TssResult> {
+fn set_attrib_data_impl(object: &TssObject, attrib_flag: TssFlag, sub_flag: TssFlag, attrib_data: &[u8]) -> Result<(), TssError> {
     let result = unsafe {
         // TODO is usize to u32 cast safe?
         Tspi_SetAttribData(object.get_handle(), attrib_flag, sub_flag, attrib_data.len() as u32, attrib_data.as_ptr() as *mut u8)
     };
     if result != TSS_SUCCESS {
-        return Err(result);
+        return Err(TssError { result: result });
     }
     Ok(())
 }
 
 impl TssContext {
-    pub fn new() -> Result<TssContext, TssResult> {
+    pub fn new() -> Result<TssContext, TssError> {
         let mut handle = 0;
         let result = unsafe {
             Tspi_Context_Create(&mut handle)
         };
         if result != TSS_SUCCESS {
-            return Err(result);
+            return Err(TssError { result: result });
         }
         Ok(TssContext { handle: handle })
     }
 
     // TODO: support destination
-    pub fn connect(&self) -> Result<(), TssResult> {
+    pub fn connect(&self) -> Result<(), TssError> {
         let result = unsafe {
             Tspi_Context_Connect(self.handle, 0 as *mut u16)
         };
         if result != TSS_SUCCESS {
-            return Err(result);
+            return Err(TssError { result: result });
         }
         Ok(())
     }
 
-    pub fn get_tpm_object(&self) -> Result<TssTPM, TssResult> {
+    pub fn get_tpm_object(&self) -> Result<TssTPM, TssError> {
         let mut handle = 0;
         let result = unsafe {
             Tspi_Context_GetTpmObject(self.handle, &mut handle)
         };
         if result != TSS_SUCCESS {
-            return Err(result);
+            return Err(TssError { result: result });
         }
         Ok(TssTPM { context: self, handle: handle })
     }
 
-    pub fn load_key_by_uuid(&self, persistent_storage_type: TssFlag, uuid_data: TSS_UUID) -> Result<TssRsaKey, TssResult> {
+    pub fn load_key_by_uuid(&self, persistent_storage_type: TssFlag, uuid_data: TSS_UUID) -> Result<TssRsaKey, TssError> {
         let mut handle = 0;
         let result = unsafe {
             Tspi_Context_LoadKeyByUUID(self.handle, persistent_storage_type, uuid_data, &mut handle)
         };
         if result != TSS_SUCCESS {
-            return Err(result);
+            return Err(TssError { result: result });
         }
         Ok(TssRsaKey { context: self, handle: handle })
     }
@@ -248,19 +280,19 @@ impl TssContext {
     // TODO: make this signature shorter? give default values?
     pub fn create_rsakey(&self, key_size: TssKeySize, key_type: TssKeyType,
         auth: TssKeyAuthorization, volatile: TssKeyVolatility, migratable: TssKeyMigratability,
-        struct_version: TssKeyStruct) -> Result<TssRsaKey, TssResult> {
+        struct_version: TssKeyStruct) -> Result<TssRsaKey, TssError> {
         let init_flags = key_size as u32 | key_type as u32 | auth as u32 | volatile as u32 | migratable as u32 | struct_version as u32;
         let mut handle = 0;
         let result = unsafe {
             Tspi_Context_CreateObject(self.handle, TSS_OBJECT_TYPE_RSAKEY, init_flags, &mut handle)
         };
         if result != TSS_SUCCESS {
-            return Err(result);
+            return Err(TssError { result: result });
         }
         Ok(TssRsaKey { context: self, handle: handle })
     }
 
-    pub fn create_policy(&self, init_flag: TssPolicyInitFlag) -> Result<TssPolicy, TssResult> {
+    pub fn create_policy(&self, init_flag: TssPolicyInitFlag) -> Result<TssPolicy, TssError> {
         let init_flags = match init_flag {
             TssPolicyInitFlag::Usage => TSS_POLICY_USAGE,
             TssPolicyInitFlag::Migration => TSS_POLICY_MIGRATION,
@@ -271,38 +303,38 @@ impl TssContext {
             Tspi_Context_CreateObject(self.handle, TSS_OBJECT_TYPE_POLICY, init_flags, &mut handle)
         };
         if result != TSS_SUCCESS {
-            return Err(result);
+            return Err(TssError { result: result });
         }
         Ok(TssPolicy { context: self, handle: handle })
     }
 
-    pub fn create_pcr_composite_info(&self) -> Result<TssPCRCompositeInfo, TssResult> {
+    pub fn create_pcr_composite_info(&self) -> Result<TssPCRCompositeInfo, TssError> {
         let mut handle = 0;
         let result = unsafe {
             Tspi_Context_CreateObject(self.handle, TSS_OBJECT_TYPE_PCRS, TSS_PCRS_STRUCT_INFO, &mut handle)
         };
         if result != TSS_SUCCESS {
-            return Err(result);
+            return Err(TssError { result: result });
         }
         Ok(TssPCRCompositeInfo { context: self, handle: handle })
     }
-    pub fn create_pcr_composite_info_long(&self) -> Result<TssPCRCompositeInfoLong, TssResult> {
+    pub fn create_pcr_composite_info_long(&self) -> Result<TssPCRCompositeInfoLong, TssError> {
         let mut handle = 0;
         let result = unsafe {
             Tspi_Context_CreateObject(self.handle, TSS_OBJECT_TYPE_PCRS, TSS_PCRS_STRUCT_INFO_LONG, &mut handle)
         };
         if result != TSS_SUCCESS {
-            return Err(result);
+            return Err(TssError { result: result });
         }
         Ok(TssPCRCompositeInfoLong { context: self, handle: handle })
     }
-    pub fn create_pcr_composite_info_short(&self) -> Result<TssPCRCompositeInfoShort, TssResult> {
+    pub fn create_pcr_composite_info_short(&self) -> Result<TssPCRCompositeInfoShort, TssError> {
         let mut handle = 0;
         let result = unsafe {
             Tspi_Context_CreateObject(self.handle, TSS_OBJECT_TYPE_PCRS, TSS_PCRS_STRUCT_INFO_SHORT, &mut handle)
         };
         if result != TSS_SUCCESS {
-            return Err(result);
+            return Err(TssError { result: result });
         }
         Ok(TssPCRCompositeInfoShort { context: self, handle: handle })
     }
@@ -319,13 +351,13 @@ impl Drop for TssContext {
 
 impl<'context> TssTPM<'context> {
     // TODO: UNTESTED
-    pub fn quote(&self, ident_key: &TssRsaKey, pcr_composite: &TssPCRCompositeInfo, external_data: &[u8; 20]) -> Result<TssValidation, TssResult> {
+    pub fn quote(&self, ident_key: &TssRsaKey, pcr_composite: &TssPCRCompositeInfo, external_data: &[u8; 20]) -> Result<TssValidation, TssError> {
         let mut validation_data = TSS_VALIDATION { versionInfo: TSS_VERSION { bMajor: 0, bMinor: 0, bRevMajor: 0, bRevMinor: 0 }, ulExternalDataLength: 20, rgbExternalData: external_data.as_ptr() as *mut u8, ulDataLength: 0, rgbData: 0 as *mut u8, ulValidationDataLength: 0, rgbValidationData: 0 as *mut u8 };
         let result = unsafe {
             Tspi_TPM_Quote(self.handle, ident_key.handle, pcr_composite.handle, &mut validation_data)
         };
         if result != TSS_SUCCESS {
-            return Err(result);
+            return Err(TssError { result: result });
         }
         let validation_result = TssValidation {
             version_info: validation_data.versionInfo.clone(),
@@ -340,14 +372,14 @@ impl<'context> TssTPM<'context> {
         Ok(validation_result)
     }
 
-    pub fn pcr_read(&self, pcr_index: u32) -> Result<Vec<u8>, TssResult> {
+    pub fn pcr_read(&self, pcr_index: u32) -> Result<Vec<u8>, TssError> {
         let mut pcr_value_length = 0;
         let mut pcr_value_ptr = 0 as *mut u8;
         let result = unsafe {
             Tspi_TPM_PcrRead(self.handle, pcr_index, &mut pcr_value_length, &mut pcr_value_ptr)
         };
         if result != TSS_SUCCESS {
-            return Err(result);
+            return Err(TssError { result: result });
         }
         let mut vec = Vec::new();
         unsafe {
@@ -361,7 +393,7 @@ impl<'context> TssTPM<'context> {
     }
 
     // TODO: events
-    pub fn pcr_extend(&self, pcr_index: u32, data: &[u8]) -> Result<Vec<u8>, TssResult> {
+    pub fn pcr_extend(&self, pcr_index: u32, data: &[u8]) -> Result<Vec<u8>, TssError> {
         let mut pcr_value_length = 0;
         let mut pcr_value_ptr = 0 as *mut u8;
         let result = unsafe {
@@ -369,7 +401,7 @@ impl<'context> TssTPM<'context> {
             Tspi_TPM_PcrExtend(self.handle, pcr_index, data.len() as u32, data.as_ptr() as *mut u8, 0 as *mut Struct_tdTSS_PCR_EVENT, &mut pcr_value_length, &mut pcr_value_ptr)
         };
         if result != TSS_SUCCESS {
-            return Err(result);
+            return Err(TssError { result: result });
         }
         // TODO: DRY with above
         let mut vec = Vec::new();
@@ -383,60 +415,60 @@ impl<'context> TssTPM<'context> {
         Ok(vec)
     }
 
-    pub fn pcr_reset(&self, pcr_composite: &TcpaPcrInfoAny) -> Result<(), TssResult> {
+    pub fn pcr_reset(&self, pcr_composite: &TcpaPcrInfoAny) -> Result<(), TssError> {
         let result = unsafe {
             Tspi_TPM_PcrReset(self.handle, pcr_composite.get_handle())
         };
         if result != TSS_SUCCESS {
-            return Err(result);
+            return Err(TssError { result: result });
         }
         Ok(())
     }
 }
 
 impl<'context> TssPolicy<'context> {
-    //pub fn set_secret(mode: TssSecretMode, secret_length: u32, secret: &[u8]) -> Result<(), TssResult> {
+    //pub fn set_secret(mode: TssSecretMode, secret_length: u32, secret: &[u8]) -> Result<(), TssError> {
         // TODO
     //}
 }
 
 impl<'c> TssObject for TssRsaKey<'c> {
     fn get_handle(&self) -> TssHObject { self.handle }
-    fn set_attrib_data(&self, attrib_flag: TssFlag, sub_flag: TssFlag, attrib_data: &[u8]) -> Result<(), TssResult> {
+    fn set_attrib_data(&self, attrib_flag: TssFlag, sub_flag: TssFlag, attrib_data: &[u8]) -> Result<(), TssError> {
         set_attrib_data_impl(self, attrib_flag, sub_flag, attrib_data)
     }
 }
 
-fn pcr_composite_select_pcr_index_ex(handle: TssHPCRS, pcr_index: u32, direction: u32) -> Result<(), TssResult> {
+fn pcr_composite_select_pcr_index_ex(handle: TssHPCRS, pcr_index: u32, direction: u32) -> Result<(), TssError> {
     let result = unsafe {
         Tspi_PcrComposite_SelectPcrIndexEx(handle, pcr_index, direction)
     };
     if result != TSS_SUCCESS {
-        return Err(result);
+        return Err(TssError { result: result });
     }
     Ok(())
 }
 
 impl<'c> TssPCRCompositeInfo<'c> {
-    fn select_pcr_index(&self, pcr_index: u32) -> Result<(), TssResult> {
+    fn select_pcr_index(&self, pcr_index: u32) -> Result<(), TssError> {
         let result = unsafe {
             Tspi_PcrComposite_SelectPcrIndex(self.handle, pcr_index)
         };
         if result != TSS_SUCCESS {
-            return Err(result);
+            return Err(TssError { result: result });
         }
         Ok(())
     }
 }
 impl<'c> TcpaPcrInfo1_2 for TssPCRCompositeInfoLong<'c> {
     fn get_handle(&self) -> u32 { self.handle }
-    fn select_pcr_index_ex(&self, pcr_index: u32, direction: u32) -> Result<(), TssResult> {
+    fn select_pcr_index_ex(&self, pcr_index: u32, direction: u32) -> Result<(), TssError> {
         pcr_composite_select_pcr_index_ex(self.handle, pcr_index, direction)
     }
 }
 impl<'c> TcpaPcrInfo1_2 for TssPCRCompositeInfoShort<'c> {
     fn get_handle(&self) -> u32 { self.handle }
-    fn select_pcr_index_ex(&self, pcr_index: u32, direction: u32) -> Result<(), TssResult> {
+    fn select_pcr_index_ex(&self, pcr_index: u32, direction: u32) -> Result<(), TssError> {
         pcr_composite_select_pcr_index_ex(self.handle, pcr_index, direction)
     }
 }
