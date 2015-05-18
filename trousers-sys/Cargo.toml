@@ -2,7 +2,7 @@
 name = "trousers-sys"
 version = "0.0.0"
 authors = ["Richard Wang <zhwang@live.com.au>"]
-description = "Native bindings to the trousers library"
+description = "Native bindings to the TrouSerS library"
 repository = "https://github.com/rzhw/rust-trousers"
 keywords = ["TrouSerS", "TPM", "TSS"]
 license = "MIT"
