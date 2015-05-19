@@ -15,6 +15,7 @@ pub type TssHPCRS = TssHObject;
 pub type TssResult = u32;
 pub type TssUnicode = u16;
 
+// TODO move this to a separate module
 #[derive(Debug)]
 pub struct TssError {
     pub result: TssResult
@@ -42,6 +43,14 @@ impl error::Error for TssError {
 }
 
 // TODO macros for the funcitons below
+
+// TODO move constants into a separate module?
+
+pub const TSS_TSPATTRIB_KEY_INFO: TssFlag = 0x00000080;
+pub const TSS_TSPATTRIB_KEYINFO_ALGORITHM: TssFlag = 0x00000280;
+pub const TSS_TSPATTRIB_RSAKEY_INFO: TssFlag = 0x00000140;
+pub const TSS_TSPATTRIB_KEYINFO_RSA_PRIMES: TssFlag = 0x00004000;
+pub const TSS_ALG_RSA: TssFlag = 0x20;
 
 pub const TSS_SUCCESS: TssResult = 0;
 
