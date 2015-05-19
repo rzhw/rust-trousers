@@ -137,6 +137,7 @@ pub enum TssKeyStruct {
 
 pub trait TssObject {
     fn get_handle(&self) -> TssHObject;
+    fn set_attrib_uint32(&self, attrib_flag: TssFlag, sub_flag: TssFlag, attrib: u32) -> Result<(), TssError>;
     fn set_attrib_data(&self, attrib_flag: TssFlag, sub_flag: TssFlag, attrib_data: &[u8]) -> Result<(), TssError>;
 }
 
@@ -219,6 +220,15 @@ fn copy_raw_ptr_to_vec(ptr: *const u8, length: usize) -> Vec<u8> {
     vec
 }
 
+fn set_attrib_uint32_impl(object: &TssObject, attrib_flag: TssFlag, sub_flag: TssFlag, attrib: u32) -> Result<(), TssError> {
+    let result = unsafe {
+        Tspi_SetAttribUint32(object.get_handle(), attrib_flag, sub_flag, attrib)
+    };
+    if result != TSS_SUCCESS {
+        return Err(TssError { result: result });
+    }
+    Ok(())
+}
 fn set_attrib_data_impl(object: &TssObject, attrib_flag: TssFlag, sub_flag: TssFlag, attrib_data: &[u8]) -> Result<(), TssError> {
     let result = unsafe {
         // TODO is usize to u32 cast safe?
@@ -434,6 +444,9 @@ impl<'context> TssPolicy<'context> {
 
 impl<'c> TssObject for TssRsaKey<'c> {
     fn get_handle(&self) -> TssHObject { self.handle }
+    fn set_attrib_uint32(&self, attrib_flag: TssFlag, sub_flag: TssFlag, attrib: u32) -> Result<(), TssError> {
+        set_attrib_uint32_impl(self, attrib_flag, sub_flag, attrib)
+    }
     fn set_attrib_data(&self, attrib_flag: TssFlag, sub_flag: TssFlag, attrib_data: &[u8]) -> Result<(), TssError> {
         set_attrib_data_impl(self, attrib_flag, sub_flag, attrib_data)
     }
